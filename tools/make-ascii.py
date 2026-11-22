@@ -111,12 +111,28 @@ def to_ascii(img, cols, rows):
         g = "".join(RAMP[round((px[x, y] / 255) ** GLYPH_GAMMA * n)] for x in range(cols)).rstrip()
         glyphs.append(g)
         shades.append("".join(str(min(SHADES - 1, px[x, y] * SHADES // 256)) for x in range(len(g))))
+    bottom = 0
     while glyphs and not glyphs[-1].strip():
         glyphs.pop(), shades.pop()
+        bottom += 1
+    top = 0
     while glyphs and not glyphs[0].strip():
         glyphs.pop(0), shades.pop(0)
+        top += 1
     pad = min(len(l) - len(l.lstrip()) for l in glyphs if l.strip())
-    return [l[pad:] for l in glyphs], [l[pad:] for l in shades]
+    glyphs, shades = [l[pad:] for l in glyphs], [l[pad:] for l in shades]
+    width = max(len(l) for l in glyphs)
+    box = (pad / cols, top / rows, (pad + width) / cols, (rows - bottom) / rows)
+    return glyphs, shades, box
+
+
+def tone_layer(img, box, cols):
+    w, h = img.size
+    crop = img.crop((round(box[0] * w), round(box[1] * h), round(box[2] * w), round(box[3] * h)))
+    target_w = 360
+    crop = crop.resize((target_w, round(crop.height * target_w / crop.width)), Image.LANCZOS)
+    alpha = crop.filter(ImageFilter.GaussianBlur(target_w / cols * 0.6))
+    return Image.merge("LA", (Image.new("L", alpha.size, 228), alpha))
 
 
 if __name__ == "__main__":
@@ -127,12 +143,14 @@ if __name__ == "__main__":
 
     if args.photo:
         img, rows = photo_image(args.photo, args.cols)
-        glyphs, shades = to_ascii(img, args.cols, rows)
+        cols = args.cols
     else:
         cols = 78
         rows = round(cols * CELL_ASPECT)
-        glyphs, shades = to_ascii(word_image(cols, rows), cols, rows)
+        img = word_image(cols, rows)
+    glyphs, shades, box = to_ascii(img, cols, rows)
     OUT.parent.mkdir(exist_ok=True)
+    tone_layer(img, box, cols).save(OUT.with_name("ascii-tone.png"), optimize=True)
     OUT.write_text("\n".join(glyphs) + "\n", encoding="utf-8", newline="\n")
     SHADE_OUT.write_text("\n".join(shades) + "\n", encoding="utf-8", newline="\n")
     print(f"{len(glyphs)} lines x {max(map(len, glyphs))} cols -> {OUT}")

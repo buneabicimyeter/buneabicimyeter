@@ -251,6 +251,14 @@ def whoami_svg(s, ascii_lines, shade_lines=None):
         f'<clipPath id="art"><rect x="{lx + 1}" y="{py + 31}" width="{lw - 2}" height="{ph - 32}" rx="9"/></clipPath>'
         f'<g clip-path="url(#art)">'
     )
+    tone_file = ASSETS / "ascii-tone.png"
+    if tone_file.exists():
+        import base64
+        tone = base64.b64encode(tone_file.read_bytes()).decode()
+        parts.append(
+            f'<image class="tone" href="data:image/png;base64,{tone}" x="{ax:.2f}" y="{ay - lh:.2f}" '
+            f'width="{cols * cw:.2f}" height="{n * lh:.2f}" preserveAspectRatio="none"/>'
+        )
     for i, line in enumerate(ascii_lines):
         stripped = line.lstrip(" ")
         if not stripped:
@@ -325,6 +333,8 @@ def whoami_svg(s, ascii_lines, shade_lines=None):
      aria-label="whoami: ascii art and contribution stats">
   <title>{PROMPT_USER}@github ~ $ whoami</title>
   <style>{COMMON_CSS}
+    .tone {{ opacity: 0; animation: tone 2.4s ease-out 1.3s forwards; }}
+    @keyframes tone {{ to {{ opacity: .42; }} }}
     .a {{ font-family: {MONO}; fill: {SHADE_COLORS[5]}; opacity: 0; animation: show .3s ease-out forwards; }}
     {" ".join(f".s{i} {{ fill: {c}; }}" for i, c in enumerate(SHADE_COLORS))}
     .beam {{ opacity: 0; animation: beam 2.4s cubic-bezier(.4,0,.6,1) 1.2s forwards; }}
