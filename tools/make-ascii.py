@@ -107,8 +107,28 @@ def to_ascii(img, cols, rows):
     px = small.load()
     n = len(RAMP) - 1
     glyphs, shades = [], []
+    import random
+    rng = random.Random(7)
+    level = [[(px[x, y] / 255) ** GLYPH_GAMMA * n for x in range(cols)] for y in range(rows)]
+    idx = [[0] * cols for _ in range(rows)]
     for y in range(rows):
-        g = "".join(RAMP[round((px[x, y] / 255) ** GLYPH_GAMMA * n)] for x in range(cols)).rstrip()
+        for x in range(cols):
+            v = level[y][x]
+            if v < 0.5:
+                continue
+            q = max(1, min(n, round(v + rng.uniform(-0.45, 0.45))))
+            idx[y][x] = q
+            err = v - q
+            if x + 1 < cols:
+                level[y][x + 1] += err * 7 / 16
+            if y + 1 < rows:
+                if x > 0:
+                    level[y + 1][x - 1] += err * 3 / 16
+                level[y + 1][x] += err * 5 / 16
+                if x + 1 < cols:
+                    level[y + 1][x + 1] += err * 1 / 16
+    for y in range(rows):
+        g = "".join(RAMP[idx[y][x]] for x in range(cols)).rstrip()
         glyphs.append(g)
         shades.append("".join(str(min(SHADES - 1, px[x, y] * SHADES // 256)) for x in range(len(g))))
     bottom = 0

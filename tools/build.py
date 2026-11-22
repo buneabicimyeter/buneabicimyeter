@@ -334,7 +334,7 @@ def whoami_svg(s, ascii_lines, shade_lines=None):
   <title>{PROMPT_USER}@github ~ $ whoami</title>
   <style>{COMMON_CSS}
     .tone {{ opacity: 0; animation: tone 2.4s ease-out 1.3s forwards; }}
-    @keyframes tone {{ to {{ opacity: .42; }} }}
+    @keyframes tone {{ to {{ opacity: .78; }} }}
     .a {{ font-family: {MONO}; fill: {SHADE_COLORS[5]}; opacity: 0; animation: show .3s ease-out forwards; }}
     {" ".join(f".s{i} {{ fill: {c}; }}" for i, c in enumerate(SHADE_COLORS))}
     .beam {{ opacity: 0; animation: beam 2.4s cubic-bezier(.4,0,.6,1) 1.2s forwards; }}
