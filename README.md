@@ -1,132 +1,89 @@
-<h1 align="center">Hey, I'm Asil 👋</h1>
+<div align="center">
 
-<p align="center">
-  <b>Full Stack Developer | FiveM Developer</b>
-</p>
+<img src="assets/contributions.svg" width="100%" alt="yoruldum@github ~ $ ./contributions.sh" />
 
-<p align="center">
-  I work on both frontend and backend projects, while also building custom scripts and systems for FiveM.
-  <br>
-  I usually focus on keeping my projects clean, understandable, and easy to improve later on.
-</p>
+<img src="assets/whoami.svg" width="100%" alt="yoruldum@github ~ $ whoami" />
 
----
+<a href="https://discord.com/users/1507687424111804506">
+  <img src="https://asiltares.com/api/discord-card" width="100%" alt="yoruldum@github ~ $ discord --status --live" />
+</a>
 
-## 🚀 About Me
+<img src="assets/stack.svg" width="100%" alt="yoruldum@github ~ $ ./stack.sh — React, HTML, CSS, JavaScript, Node.js, PHP, Python, Lua, FiveM, Discord" />
 
-* 💻 I build web interfaces using React, HTML5, CSS3, and JavaScript.
-* ⚙️ I work with Node.js, PHP, and JavaScript for backend systems, APIs, and automation tools.
-* 🎮 I develop custom FiveM scripts and roleplay systems using Lua.
-* 📦 I mainly work with QBCore / QBX frameworks.
-* 🛠️ I build infrastructure, bots, management systems, and custom solutions for roleplay servers.
-* 🔧 I try to keep my code simple, organized, and performance-friendly.
+</div>
 
----
+```console
+yoruldum@github ~ $ cat about.txt
+Hey, I'm Asil — full-stack developer & FiveM developer.
+I work on both frontend and backend projects, and build custom scripts
+and systems for FiveM roleplay servers (QBCore / QBX).
+I keep my code simple, organized and performance-friendly —
+easy to understand and easy to improve later on.
+```
 
-## 🛠️ Tech Stack
+```console
+yoruldum@github ~ $ tree ~/work
+~/work
+├── web/
+│   ├── responsive websites & web interfaces
+│   ├── react-based frontend projects
+│   └── admin panels, dashboards & user panels
+├── fivem/
+│   ├── custom lua scripts on qbcore / qbx
+│   ├── roleplay mechanics & server systems
+│   └── optimizing and improving existing systems
+└── bots-and-systems/
+    ├── discord bots, ticket & support systems
+    ├── logging, moderation & permission systems
+    └── automation & server management tools
+```
 
-<table>
-  <tr>
-    <td align="center" width="33%">
-      <h3>🌐 Frontend</h3>
-      <br>
-      <img src="https://skillicons.dev/icons?i=react,html,css,js&theme=dark" alt="Frontend Skills" />
-      <br><br>
-      <sub>
-        I build responsive web interfaces and frontend projects using React, HTML, CSS, and JavaScript.
-      </sub>
-    </td>
-    <td align="center" width="33%">
-      <h3>⚙️ Backend & Systems</h3>
-      <br>
-      <img src="https://skillicons.dev/icons?i=nodejs,php,js,vscode&theme=dark" alt="Backend Skills" />
-      <br><br>
-      <sub>
-        I use Node.js, PHP, and JavaScript to build APIs, automation tools, and server-side systems.
-      </sub>
-    </td>
-    <td align="center" width="33%">
-      <h3>🎮 FiveM</h3>
-      <br>
-      <img src="https://skillicons.dev/icons?i=lua&theme=dark" alt="Lua" />
-      <img src="https://cdn.simpleicons.org/fivem/F40552" width="48" height="48" alt="FiveM" />
-      <br><br>
-      <sub>
-        I develop custom scripts, server systems, and roleplay mechanics for FiveM using Lua.
-      </sub>
-    </td>
-  </tr>
-</table>
+```console
+yoruldum@github ~ $ cat ~/asil-store/README
+Asil Store is where I develop and publish my own FiveM scripts:
+useful, optimized and configurable systems that drop into
+different servers without a fight.
+```
 
----
+<!-- live:projects -->
+```console
+yoruldum@github ~ $ ls -l ~/projects
+total 5
+★ 7   Python      asil-png-to-webp/         Simple Python script that batch converts PNG images in a…
+★ 5   Python      asil-backdoor-blocklist/  A community-curated domain blocklist for FiveM /…
+★ 5   JavaScript  asil-sound-finder/        Chrome extension that identifies the song playing in any…
+★ 5   JavaScript  asil-downloader/          Chrome extension that downloads video, audio, subtitles…
+★ 4   Batchfile   asil-fivem-port-manager/  Simple Windows script that checks, creates or deletes…
+```
+<!-- /live:projects -->
 
-## 📌 What I Work On
-
-<table>
-  <tr>
-    <td width="33%" valign="top">
-      <h3>🌐 Web Development</h3>
-      <ul>
-        <li>Responsive websites and web interfaces.</li>
-        <li>React-based frontend projects.</li>
-        <li>Web projects built with HTML, CSS, and JavaScript.</li>
-        <li>Admin panels, dashboards, and user panels.</li>
-      </ul>
-    </td>
-    <td width="33%" valign="top">
-      <h3>🎮 FiveM Development</h3>
-      <ul>
-        <li>Custom FiveM scripts written in Lua.</li>
-        <li>QBCore / QBX based systems.</li>
-        <li>Custom mechanics and systems for roleplay servers.</li>
-        <li>Optimization and improvements for existing systems.</li>
-      </ul>
-    </td>
-    <td width="33%" valign="top">
-      <h3>🤖 Bots & Systems</h3>
-      <ul>
-        <li>Discord bots.</li>
-        <li>Ticket and support systems.</li>
-        <li>Logging, moderation, and permission systems.</li>
-        <li>Automation and server management tools.</li>
-      </ul>
-    </td>
-  </tr>
-</table>
-
----
-
-## 🛒 Asil Store
+<!-- live:gitlog -->
+```console
+yoruldum@github ~ $ git log --all --oneline -6
+d854ba6  asil-sound-finder        Add files via upload                        2 weeks ago
+25c9fe3  asil-sound-finder        Delete README.md                            2 weeks ago
+1f6efe5  asil-sound-finder        Add files via upload                        2 weeks ago
+fd2431b  asil-sound-finder        Initial commit                              2 weeks ago
+074d454  asil-backdoor-blocklist  Rename readme.md to README.md               2 months ago
+be95dc6  asil-backdoor-blocklist  Add files via upload                        2 months ago
+```
+<!-- /live:gitlog -->
 
 <p>
-  Asil Store is where I develop and publish my own FiveM scripts.
-  I mainly focus on creating useful, optimized, and configurable systems that can be easily integrated into different servers.
+  <a href="https://asiltares.com"><code>asiltares.com</code></a>&nbsp;
+  <a href="https://discord.gg/SQM3MPF84m"><code>discord</code></a>&nbsp;
+  <a href="mailto:yoruldum@asiltares.com"><code>yoruldum@asiltares.com</code></a>
 </p>
 
----
+<!-- live:uptime -->
+```console
+yoruldum@github ~ $ uptime
+up 1y 3mo · 5 public repos · 26 ★ · 4 followers · last push 1 week ago
+langs: Python ×2  JavaScript ×2  Batchfile ×1
+```
+<!-- /live:uptime -->
 
-## 🔥 Contribution Streak
-
-<p align="center">
-  <img src="https://streak-stats.demolab.com?user=asiltares&theme=github-dark-blue&hide_border=true" alt="GitHub Streak" />
-</p>
-
----
-
-## 📫 Contact
-
-<p align="center">
-  <a href="https://discord.gg/SQM3MPF84m">
-    <img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord" />
-  </a>
-  &nbsp;&nbsp;
-  <a href="mailto:asiltares@gmail.com">
-    <img src="https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white" alt="Email" />
-  </a>
-</p>
-
----
-
-<p align="center">
-  <b>I'm usually either building something new or trying to improve something that already works.</b>
-</p>
+```console
+yoruldum@github ~ $ echo $STATUS
+usually building something new — or improving something that already works.
+```
