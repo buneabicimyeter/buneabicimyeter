@@ -1,6 +1,8 @@
+import base64
 import datetime as dt
 import html
 import re
+import struct
 import sys
 import urllib.request
 from pathlib import Path
@@ -210,26 +212,11 @@ def stat_box(x, y, w, h, label, value, unit, sub, delay, accent=False):
   </g>'''
 
 
-def shaded_runs(text, shade):
-    if not shade:
-        return esc(text).replace(" ", " ")
-    out, run, cur = [], "", None
-    for ch, lv in zip(text, shade.ljust(len(text), "0")):
-        if ch != " " and lv != cur:
-            if run:
-                out.append(f'<tspan class="s{cur}">{esc(run)}</tspan>' if cur else esc(run))
-            run, cur = "", lv
-        run += " " if ch == " " else ch
-    if run:
-        out.append(f'<tspan class="s{cur}">{esc(run)}</tspan>' if cur else esc(run))
-    return "".join(out)
+def png_size(data):
+    return struct.unpack(">II", data[16:24])
 
 
-SHADE_COLORS = ["#2b3139", "#3a414b", "#4b535e", "#5e6672", "#737b87",
-                "#8a929d", "#a2a9b3", "#bcc2ca", "#d8dce1", "#f4f6f8"]
-
-
-def whoami_svg(s, ascii_lines, shade_lines=None):
+def whoami_svg(s):
     W, H = 1000, 600
     py, ph = 72, 518
     lx, lw = 10, 485
@@ -237,39 +224,24 @@ def whoami_svg(s, ascii_lines, shade_lines=None):
     parts = [pane(lx, py, lw, ph, f"{PROMPT_USER}@github: ~/ascii.sh", 0.9),
              pane(rx, py, rw, ph, f"{PROMPT_USER}@github: ~/stats.sh", 0.9)]
 
-    n = max(1, len(ascii_lines))
-    cols = max(len(l) for l in ascii_lines) if ascii_lines else 1
-    top_pad = 14
-    area_w, area_h = lw - 40, ph - 30 - top_pad
-    cw = min(area_w / cols, (area_h / n) * 0.62)
-    lh = min(area_h / n, cw / 0.55)
-    fs = lh * 1.75
-    ax = lx + (lw - cols * cw) / 2
-    last_baseline = py + ph - 1.5
-    ay = last_baseline - (n - 1) * lh
-    parts.append(
-        f'<clipPath id="art"><rect x="{lx + 1}" y="{py + 31}" width="{lw - 2}" height="{ph - 32}" rx="9"/></clipPath>'
-        f'<g clip-path="url(#art)">'
-    )
-    tone_file = ASSETS / "ascii-tone.png"
-    if tone_file.exists():
-        import base64
-        tone = base64.b64encode(tone_file.read_bytes()).decode()
+    art_file = ASSETS / "ascii-art.png"
+    if art_file.exists():
+        art = art_file.read_bytes()
+        iw, ih = png_size(art)
+        top_pad = 14
+        k = min((lw - 40) / iw, (ph - 30 - top_pad) / ih)
+        dw, dh = iw * k, ih * k
+        ax, ay = lx + (lw - dw) / 2, py + ph - 1 - dh
+        inner_top, inner_h = py + 31, ph - 32
         parts.append(
-            f'<image class="tone" href="data:image/png;base64,{tone}" x="{ax:.2f}" y="{ay - lh:.2f}" '
-            f'width="{cols * cw:.2f}" height="{n * lh:.2f}" preserveAspectRatio="none"/>'
+            f'<clipPath id="art"><rect x="{lx + 1}" y="{inner_top}" width="{lw - 2}" height="{inner_h}" rx="9"/></clipPath>'
+            f'<clipPath id="reveal"><rect x="{lx}" y="{inner_top}" width="{lw}" height="{inner_h}">'
+            f'<animate attributeName="height" values="0;0;{inner_h}" keyTimes="0;.333;1" calcMode="spline" '
+            f'keySplines="0 0 1 1;.4 0 .6 1" begin="0s" dur="3.6s" fill="freeze"/></rect></clipPath>'
+            f'<g clip-path="url(#art)"><g clip-path="url(#reveal)">'
+            f'<image href="data:image/png;base64,{base64.b64encode(art).decode()}" '
+            f'x="{ax:.2f}" y="{ay:.2f}" width="{dw:.2f}" height="{dh:.2f}"/></g></g>'
         )
-    for i, line in enumerate(ascii_lines):
-        stripped = line.lstrip(" ")
-        if not stripped:
-            continue
-        lead = len(line) - len(stripped)
-        body = shaded_runs(stripped, shade_lines[i][lead:] if shade_lines else "")
-        parts.append(
-            f'<text class="a" x="{ax + lead * cw:.1f}" y="{ay + i * lh:.2f}" textLength="{len(stripped) * cw:.1f}" '
-            f'lengthAdjust="spacingAndGlyphs" style="font-size:{fs:.2f}px;animation-delay:{1.3 + i * 2.2 / n:.2f}s">{body}</text>'
-        )
-    parts.append("</g>")
 
     parts.append(
         f'<defs><linearGradient id="beamg" x1="0" x2="0" y1="0" y2="1">'
@@ -333,12 +305,7 @@ def whoami_svg(s, ascii_lines, shade_lines=None):
      aria-label="whoami: ascii art and contribution stats">
   <title>{PROMPT_USER}@github ~ $ whoami</title>
   <style>{COMMON_CSS}
-    .tone {{ opacity: 0; animation: tone 2.4s ease-out 1.3s forwards; }}
-    @keyframes tone {{ to {{ opacity: .78; }} }}
-    .a {{ font-family: {MONO}; fill: {SHADE_COLORS[5]}; opacity: 0; animation: show .3s ease-out forwards; }}
-    {" ".join(f".s{i} {{ fill: {c}; }}" for i, c in enumerate(SHADE_COLORS))}
     .beam {{ opacity: 0; animation: beam 2.4s cubic-bezier(.4,0,.6,1) 1.2s forwards; }}
-    @keyframes show {{ to {{ opacity: 1; }} }}
     @keyframes beam {{ 0% {{ opacity: 0; transform: translateY(0); }} 8% {{ opacity: 1; }}
                       90% {{ opacity: 1; }} 100% {{ opacity: 0; transform: translateY({ph - 40}px); }} }}
     .b {{ transform-box: fill-box; transform-origin: bottom; transform: scaleY(0);
@@ -515,11 +482,8 @@ def update_readme(blocks):
 if __name__ == "__main__":
     days = fetch_days(USER)
     s = stats(days)
-    art = (ASSETS / "ascii.txt").read_text(encoding="utf-8").replace("\r", "").rstrip("\n").split("\n")
-    shade_file = ASSETS / "ascii-shade.txt"
-    shade = shade_file.read_text(encoding="utf-8").replace("\r", "").rstrip("\n").split("\n") if shade_file.exists() else None
     (ASSETS / "contributions.svg").write_text(contributions_svg(days, s), encoding="utf-8")
-    (ASSETS / "whoami.svg").write_text(whoami_svg(s, art, shade), encoding="utf-8")
+    (ASSETS / "whoami.svg").write_text(whoami_svg(s), encoding="utf-8")
     (ASSETS / "stack.svg").write_text(stack_svg(), encoding="utf-8")
     try:
         update_readme(live_blocks(USER))

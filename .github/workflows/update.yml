@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
-    paths: ["tools/**", "assets/ascii.txt", "assets/ascii-shade.txt", "assets/ascii-tone.png", "assets/icons/**"]
+    paths: ["tools/**", "assets/ascii-art.png", "assets/icons/**"]
 
 permissions:
   contents: write

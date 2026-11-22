@@ -1,48 +1,58 @@
 import argparse
 from pathlib import Path
 
-from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
+import numpy as np
+from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
-OUT = Path(__file__).resolve().parent.parent / "assets" / "ascii.txt"
-SHADE_OUT = OUT.with_name("ascii-shade.txt")
-SHADES = 10
-GLYPH_GAMMA = 1.45
-CELL_ASPECT = 0.55
+ROOT = Path(__file__).resolve().parent.parent
+ART = ROOT / "assets" / "ascii-art.png"
+TEXT = ROOT / "assets" / "ascii.txt"
 
-RAMP = " .:!il|1tfjrxnvczuoXYUJCLQ0OZmwqpdbkh#MW&8%B@$"
+CELL_W, CELL_H = 5, 9
+SUPERSAMPLE = 4
+POOL = "".join(chr(c) for c in range(33, 127))
+FONT_SETS = (("consola.ttf", "consolab.ttf"), ("DejaVuSansMono.ttf", "DejaVuSansMono-Bold.ttf"))
+MIN_COVERAGE = 0.1
+MAX_STROKE = 0.11
+MAX_TILT = 0.16
+TWIN_RANGE = 0.02
+GLYPH_GAMMA = 0.8
+TONE_GAMMA = 1.0
+STROKE_BOOST = 1.6
+INK = np.array([0xF4, 0xF6, 0xF8], np.float32) / 255
 
 
-def find_font(size):
-    for name in ("arialbd.ttf", "Arial Bold.ttf", "DejaVuSans-Bold.ttf", "LiberationSans-Bold.ttf"):
+def load_fonts(size):
+    for names in FONT_SETS:
         try:
-            return ImageFont.truetype(name, size)
+            return [ImageFont.truetype(n, size) for n in names]
         except OSError:
             continue
-    return ImageFont.load_default()
+    raise SystemExit("no monospace font found: install Consolas or DejaVu Sans Mono")
 
 
-def word_image(cols, rows):
-    w, h = cols * 10, int(rows * 10 / CELL_ASPECT)
-    img = Image.new("L", (w, h), 0)
-    d = ImageDraw.Draw(img)
-    font = find_font(int(h * 0.5))
-    boxes = [d.textbbox((0, 0), part, font=font) for part in ("AS", "IL")]
-    gap = h * 0.05
-    y = (h - sum(b[3] - b[1] for b in boxes) - gap) / 2
-    for part, box in zip(("AS", "IL"), boxes):
-        d.text(((w - (box[2] - box[0])) / 2 - box[0], y - box[1]), part, font=font, fill=255)
-        y += box[3] - box[1] + gap
-    light = Image.linear_gradient("L").rotate(-35).resize((w, h))
-    light = ImageOps.autocontrast(light).point(lambda p: 110 + p * 145 // 255)
-    return Image.composite(light, Image.new("L", (w, h)), img)
-
-
-def subject_mask(img):
-    if img.mode != "RGBA" or img.getextrema()[3][0] == 255:
-        return Image.new("L", img.size, 255)
-    a = img.getchannel("A").point(lambda p: 255 if p > 110 else 0)
-    a = a.filter(ImageFilter.MinFilter(5)).filter(ImageFilter.MaxFilter(5))
-    return largest_region(a).filter(ImageFilter.GaussianBlur(1.2))
+def glyph_tiles():
+    tw, th = CELL_W * SUPERSAMPLE, CELL_H * SUPERSAMPLE
+    glyphs = []
+    for font in load_fonts(240):
+        advance = int(np.ceil(font.getlength("M")))
+        cap = -font.getbbox("H", anchor="ls")[1]
+        base = int(cap * 1.4)
+        for ch in POOL:
+            im = Image.new("L", (advance, int(cap * 1.8)), 0)
+            ImageDraw.Draw(im).text((0, base), ch, font=font, fill=255, anchor="ls")
+            a = np.asarray(im.crop((0, base - cap, advance, base)).resize((tw, th), Image.LANCZOS), np.float32) / 255
+            a = 1 - (1 - a) ** STROKE_BOOST
+            profile = a.mean(axis=1)
+            cov = float(profile.mean())
+            if cov < MIN_COVERAGE:
+                continue
+            spectrum = np.abs(np.fft.rfft(profile - cov)) / len(profile) / cov
+            if np.sqrt((spectrum[2:] ** 2).sum()) > MAX_STROKE or spectrum[1] > MAX_TILT:
+                continue
+            glyphs.append((cov, ch, a))
+    glyphs.sort(key=lambda g: g[0])
+    return glyphs
 
 
 def largest_region(mask):
@@ -71,88 +81,99 @@ def largest_region(mask):
     return out
 
 
-def photo_image(path, cols):
-    src = Image.open(path)
-    src = src.convert("RGBA") if "A" in src.getbands() else src.convert("RGB")
-    mask = subject_mask(src)
+def blur(a, radius):
+    im = Image.fromarray(np.clip(a * 255 + 0.5, 0, 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(radius))
+    return np.asarray(im, np.float32) / 255
+
+
+def photo_subject(path):
+    src = Image.open(path).convert("RGBA")
+    if src.getextrema()[3][0] == 255:
+        mask = Image.new("L", src.size, 255)
+    else:
+        a = src.getchannel("A").point(lambda p: 255 if p > 110 else 0)
+        a = a.filter(ImageFilter.MinFilter(5)).filter(ImageFilter.MaxFilter(5))
+        mask = largest_region(a).filter(ImageFilter.GaussianBlur(1.2))
     box = mask.point(lambda p: 255 if p > 20 else 0).getbbox() or (0, 0, *src.size)
     src, mask = src.crop(box), mask.crop(box)
 
-    scale = max(1, 1400 // max(src.size))
+    scale = 4
     size = (src.width * scale, src.height * scale)
-    gray = src.convert("RGB").convert("L").resize(size, Image.LANCZOS)
-    mask = mask.resize(size, Image.LANCZOS)
+    gray = src.convert("RGB").convert("L").filter(ImageFilter.MedianFilter(3))
+    g = np.asarray(gray.resize(size, Image.LANCZOS), np.float32) / 255
+    m = np.asarray(mask.resize(size, Image.LANCZOS), np.float32) / 255
 
-    tone = ImageOps.autocontrast(gray, cutoff=1, mask=mask)
-    tone = Image.blend(ImageOps.equalize(tone, mask=mask), tone, 0.6).point(lambda p: int(255 * (p / 255) ** 0.95))
-
-    soft = gray.filter(ImageFilter.GaussianBlur(1.5 * scale))
-    edges = ImageChops.add(
-        soft.filter(ImageFilter.FIND_EDGES), soft.filter(ImageFilter.Kernel((3, 3), [-1, -1, -1, -1, 8, -1, -1, -1, -1], 1))
-    )
-    edges = ImageOps.autocontrast(edges, cutoff=2, mask=mask).point(lambda p: int(p * 0.35))
-    outline = ImageOps.autocontrast(mask.filter(ImageFilter.FIND_EDGES)).point(lambda p: int(p * 0.5))
-
-    detail = ImageChops.add(ImageChops.add(tone.point(lambda p: int(p * 0.9)), edges), outline)
-    detail = detail.point(lambda p: max(18, p))
-    detail = Image.composite(detail, Image.new("L", size, 0), mask)
-    detail = detail.filter(ImageFilter.UnsharpMask(radius=2 * scale, percent=140, threshold=2))
-
-    rows = round(cols * size[1] / size[0] * CELL_ASPECT)
-    return detail, rows
+    lo, hi = np.percentile(g[m > 0.5], [1.0, 99.6])
+    g = np.clip((g - lo) / max(hi - lo, 1e-3), 0, 1)
+    g = np.clip(g + 0.55 * (g - blur(g, 7 * scale)), 0, 1)
+    g = np.clip(g + 0.9 * (blur(g, 0.7 * scale) - blur(g, 2.2 * scale)), 0, 1)
+    g = 0.14 + 0.86 * g ** 0.85
+    return g, m
 
 
-def to_ascii(img, cols, rows):
-    small = img.resize((cols, rows), Image.BOX)
-    px = small.load()
-    n = len(RAMP) - 1
-    glyphs, shades = [], []
-    import random
-    rng = random.Random(7)
-    level = [[(px[x, y] / 255) ** GLYPH_GAMMA * n for x in range(cols)] for y in range(rows)]
-    idx = [[0] * cols for _ in range(rows)]
+def word_subject():
+    w, h = 900, 1000
+    img = Image.new("L", (w, h), 0)
+    d = ImageDraw.Draw(img)
+    font = load_fonts(420)[1]
+    for i, part in enumerate(("AS", "IL")):
+        d.text((w / 2, h * (0.27 + i * 0.48)), part, font=font, fill=255, anchor="mm")
+    m = np.asarray(img, np.float32) / 255
+    shade = np.linspace(1.0, 0.55, h, dtype=np.float32)[:, None]
+    return m * shade, m
+
+
+def tone_grid(g, m, cols):
+    rows = round(cols * g.shape[0] / g.shape[1] * CELL_W / CELL_H)
+    num = np.asarray(Image.fromarray((g * m).astype(np.float32)).resize((cols, rows), Image.BOX))
+    cover = np.asarray(Image.fromarray(m.astype(np.float32)).resize((cols, rows), Image.BOX))
+    tone = np.where(cover > 1e-3, num / np.maximum(cover, 1e-3), 0)
+    return np.clip(tone, 0, 1), np.clip(cover, 0, 1)
+
+
+def render(tone, cover):
+    glyphs = glyph_tiles()
+    covs = np.array([g[0] for g in glyphs], np.float32)
+    lo, hi = float(covs[0]), float(covs[-1])
+    rows, cols = tone.shape
+    tw, th = CELL_W * SUPERSAMPLE, CELL_H * SUPERSAMPLE
+    rgba = np.zeros((rows * CELL_H, cols * CELL_W, 4), np.float32)
+    lines = []
     for y in range(rows):
+        alpha = np.zeros((th, cols * tw), np.float32)
+        light = np.zeros((th, cols * tw), np.float32)
+        line = []
         for x in range(cols):
-            v = level[y][x]
-            if v < 0.5:
+            k, t = cover[y, x], tone[y, x]
+            if k < 0.25:
+                line.append(" ")
                 continue
-            q = max(1, min(n, round(v + rng.uniform(-0.45, 0.45))))
-            idx[y][x] = q
-            err = v - q
-            if x + 1 < cols:
-                level[y][x + 1] += err * 7 / 16
-            if y + 1 < rows:
-                if x > 0:
-                    level[y + 1][x - 1] += err * 3 / 16
-                level[y + 1][x] += err * 5 / 16
-                if x + 1 < cols:
-                    level[y + 1][x + 1] += err * 1 / 16
-    for y in range(rows):
-        g = "".join(RAMP[idx[y][x]] for x in range(cols)).rstrip()
-        glyphs.append(g)
-        shades.append("".join(str(min(SHADES - 1, px[x, y] * SHADES // 256)) for x in range(len(g))))
-    bottom = 0
-    while glyphs and not glyphs[-1].strip():
-        glyphs.pop(), shades.pop()
-        bottom += 1
-    top = 0
-    while glyphs and not glyphs[0].strip():
-        glyphs.pop(0), shades.pop(0)
-        top += 1
-    pad = min(len(l) - len(l.lstrip()) for l in glyphs if l.strip())
-    glyphs, shades = [l[pad:] for l in glyphs], [l[pad:] for l in shades]
-    width = max(len(l) for l in glyphs)
-    box = (pad / cols, top / rows, (pad + width) / cols, (rows - bottom) / rows)
-    return glyphs, shades, box
+            target = lo + (hi - lo) * t ** GLYPH_GAMMA
+            twins = np.flatnonzero(np.abs(covs - target) <= TWIN_RANGE)
+            if twins.size == 0:
+                twins = [int(np.abs(covs - target).argmin())]
+            cov, ch, tile = glyphs[twins[(x * 7 + y * 13) % len(twins)]]
+            line.append(ch)
+            ink = min(1.0, hi * t ** TONE_GAMMA / cov)
+            a = tile * min(1.0, (k - 0.25) / 0.5)
+            alpha[:, x * tw:(x + 1) * tw] = a
+            light[:, x * tw:(x + 1) * tw] = a * ink
+        lines.append("".join(line).rstrip())
+        a_small = alpha.reshape(CELL_H, SUPERSAMPLE, cols * CELL_W, SUPERSAMPLE).mean(axis=(1, 3))
+        l_small = light.reshape(CELL_H, SUPERSAMPLE, cols * CELL_W, SUPERSAMPLE).mean(axis=(1, 3))
+        band = slice(y * CELL_H, (y + 1) * CELL_H)
+        rgba[band, :, 3] = a_small
+        shade = np.where(a_small > 1e-4, l_small / np.maximum(a_small, 1e-4), 0)
+        rgba[band, :, :3] = shade[..., None] * INK
 
-
-def tone_layer(img, box, cols):
-    w, h = img.size
-    crop = img.crop((round(box[0] * w), round(box[1] * h), round(box[2] * w), round(box[3] * h)))
-    target_w = 360
-    crop = crop.resize((target_w, round(crop.height * target_w / crop.width)), Image.LANCZOS)
-    alpha = crop.filter(ImageFilter.GaussianBlur(target_w / cols * 0.6))
-    return Image.merge("LA", (Image.new("L", alpha.size, 228), alpha))
+    used_rows = [i for i, l in enumerate(lines) if l.strip()]
+    lead = min(len(l) - len(l.lstrip()) for l in lines if l.strip())
+    width = max(len(l) for l in lines)
+    r0, r1 = used_rows[0], used_rows[-1] + 1
+    rgba = rgba[r0 * CELL_H:r1 * CELL_H, lead * CELL_W:width * CELL_W]
+    text = [l[lead:] for l in lines[r0:r1]]
+    img = Image.fromarray(np.clip(rgba * 255 + 0.5, 0, 255).astype(np.uint8), "RGBA")
+    return img, text
 
 
 if __name__ == "__main__":
@@ -161,16 +182,10 @@ if __name__ == "__main__":
     ap.add_argument("--cols", type=int, default=150)
     args = ap.parse_args()
 
-    if args.photo:
-        img, rows = photo_image(args.photo, args.cols)
-        cols = args.cols
-    else:
-        cols = 78
-        rows = round(cols * CELL_ASPECT)
-        img = word_image(cols, rows)
-    glyphs, shades, box = to_ascii(img, cols, rows)
-    OUT.parent.mkdir(exist_ok=True)
-    tone_layer(img, box, cols).save(OUT.with_name("ascii-tone.png"), optimize=True)
-    OUT.write_text("\n".join(glyphs) + "\n", encoding="utf-8", newline="\n")
-    SHADE_OUT.write_text("\n".join(shades) + "\n", encoding="utf-8", newline="\n")
-    print(f"{len(glyphs)} lines x {max(map(len, glyphs))} cols -> {OUT}")
+    g, m = photo_subject(args.photo) if args.photo else word_subject()
+    tone, cover = tone_grid(g, m, args.cols)
+    img, text = render(tone, cover)
+    ART.parent.mkdir(exist_ok=True)
+    img.save(ART, optimize=True)
+    TEXT.write_text("\n".join(text) + "\n", encoding="utf-8", newline="\n")
+    print(f"{len(text)} rows x {max(map(len, text))} cols, {img.width}x{img.height}px -> {ART}")
