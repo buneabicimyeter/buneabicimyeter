@@ -6,9 +6,10 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont, ImageOps
 OUT = Path(__file__).resolve().parent.parent / "assets" / "ascii.txt"
 SHADE_OUT = OUT.with_name("ascii-shade.txt")
 SHADES = 10
+GLYPH_GAMMA = 1.45
 CELL_ASPECT = 0.55
 
-RAMP = " .'`,:;-~+=*?%#&$@"
+RAMP = " .:!il|1tfjrxnvczuoXYUJCLQ0OZmwqpdbkh#MW&8%B@$"
 
 
 def find_font(size):
@@ -107,7 +108,7 @@ def to_ascii(img, cols, rows):
     n = len(RAMP) - 1
     glyphs, shades = [], []
     for y in range(rows):
-        g = "".join(RAMP[round(px[x, y] * n / 255)] for x in range(cols)).rstrip()
+        g = "".join(RAMP[round((px[x, y] / 255) ** GLYPH_GAMMA * n)] for x in range(cols)).rstrip()
         glyphs.append(g)
         shades.append("".join(str(min(SHADES - 1, px[x, y] * SHADES // 256)) for x in range(len(g))))
     while glyphs and not glyphs[-1].strip():

@@ -5,7 +5,7 @@ import sys
 import urllib.request
 from pathlib import Path
 
-USER = sys.argv[1] if len(sys.argv) > 1 else "asiltares"
+USER = sys.argv[1] if len(sys.argv) > 1 else "buneabicimyeter"
 PROMPT_USER = "yoruldum"
 ROOT = Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "assets"
