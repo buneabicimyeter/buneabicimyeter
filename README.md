@@ -60,8 +60,8 @@ total 5
 <!-- live:gitlog -->
 ```console
 yoruldum@github ~ $ git log --all --oneline -6
-754162d  asil-downloader    Add files via upload                        1 week ago
-fb805dc  asil-downloader    Initial commit                              1 week ago
+754162d  asil-downloader    Add files via upload                        2 weeks ago
+fb805dc  asil-downloader    Initial commit                              2 weeks ago
 d854ba6  asil-sound-finder  Add files via upload                        2 weeks ago
 25c9fe3  asil-sound-finder  Delete README.md                            2 weeks ago
 1f6efe5  asil-sound-finder  Add files via upload                        2 weeks ago
@@ -78,7 +78,7 @@ fd2431b  asil-sound-finder  Initial commit                              2 weeks 
 <!-- live:uptime -->
 ```console
 yoruldum@github ~ $ uptime
-up 1y 3mo · 5 public repos · 26 ★ · 4 followers · last push 1 week ago
+up 1y 3mo · 5 public repos · 26 ★ · 4 followers · last push 2 weeks ago
 langs: Python ×2  JavaScript ×2  Batchfile ×1
 ```
 <!-- /live:uptime -->
