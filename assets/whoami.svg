@@ -64,7 +64,7 @@
   <g class="in" style="animation-delay:1.76s">
     <rect x="752.5" y="213.5" width="223" height="87" rx="6" fill="#11161d" stroke="#21262d"/>
     <text x="766" y="235" style="font:500 12px ui-monospace, 'SF Mono', SFMono-Regular, 'Cascadia Mono', Consolas, 'Liberation Mono', Menlo, monospace;fill:#8b949e">$ active days</text>
-    <text x="766" y="269" style="font:700 30px ui-monospace, 'SF Mono', SFMono-Regular, 'Cascadia Mono', Consolas, 'Liberation Mono', Menlo, monospace;fill:#e6edf3">9<tspan dx="8" style="font:500 13px ui-monospace, 'SF Mono', SFMono-Regular, 'Cascadia Mono', Consolas, 'Liberation Mono', Menlo, monospace;fill:#8b949e">/ 369</tspan></text>
+    <text x="766" y="269" style="font:700 30px ui-monospace, 'SF Mono', SFMono-Regular, 'Cascadia Mono', Consolas, 'Liberation Mono', Menlo, monospace;fill:#e6edf3">9<tspan dx="8" style="font:500 13px ui-monospace, 'SF Mono', SFMono-Regular, 'Cascadia Mono', Consolas, 'Liberation Mono', Menlo, monospace;fill:#8b949e">/ 370</tspan></text>
     <text x="766" y="289" style="font:500 11px ui-monospace, 'SF Mono', SFMono-Regular, 'Cascadia Mono', Consolas, 'Liberation Mono', Menlo, monospace;fill:#6e7681">2% of the year</text>
   </g>
   <g class="in" style="animation-delay:1.88s">
